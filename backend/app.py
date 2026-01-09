@@ -39,36 +39,52 @@ class QueryRequest(BaseModel):
     """Request model for course queries"""
     query: str
     session_id: Optional[str] = None
+    model: Optional[str] = None
 
 class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
     sources: List[str]
     session_id: str
+    response_time: float
 
 class CourseStats(BaseModel):
     """Response model for course statistics"""
     total_courses: int
     course_titles: List[str]
 
+class ModelInfo(BaseModel):
+    """Response model for available models"""
+    name: str
+    size: Optional[str] = None
+
+class ModelsResponse(BaseModel):
+    """Response model for models list"""
+    models: List[ModelInfo]
+
 # API Endpoints
 
 @app.post("/api/query", response_model=QueryResponse)
 async def query_documents(request: QueryRequest):
     """Process a query and return response with sources"""
+    import time
+    start_time = time.time()
     try:
         # Create session if not provided
         session_id = request.session_id
         if not session_id:
             session_id = rag_system.session_manager.create_session()
-        
+
         # Process query using RAG system
-        answer, sources = rag_system.query(request.query, session_id)
-        
+        answer, sources = rag_system.query(request.query, session_id, model=request.model)
+
+        response_time = time.time() - start_time
+
         return QueryResponse(
             answer=answer,
             sources=sources,
-            session_id=session_id
+            session_id=session_id,
+            response_time=round(response_time, 2)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -82,6 +98,30 @@ async def get_course_stats():
             total_courses=analytics["total_courses"],
             course_titles=analytics["course_titles"]
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/models", response_model=ModelsResponse)
+async def get_available_models():
+    """Get list of available Ollama models"""
+    try:
+        import ollama
+        client = ollama.Client(host=config.OLLAMA_BASE_URL)
+        response = client.list()
+        models = []
+        for model in response.models:
+            name = model.model
+            size = model.size
+            # Format size to human readable
+            if size and isinstance(size, int):
+                if size >= 1e9:
+                    size = f"{size/1e9:.1f} GB"
+                elif size >= 1e6:
+                    size = f"{size/1e6:.1f} MB"
+                else:
+                    size = str(size)
+            models.append(ModelInfo(name=name, size=size if size else None))
+        return ModelsResponse(models=models)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

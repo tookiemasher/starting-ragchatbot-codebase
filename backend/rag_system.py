@@ -16,7 +16,7 @@ class RAGSystem:
         # Initialize core components
         self.document_processor = DocumentProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
         self.vector_store = VectorStore(config.CHROMA_PATH, config.EMBEDDING_MODEL, config.MAX_RESULTS)
-        self.ai_generator = AIGenerator(config.ANTHROPIC_API_KEY, config.ANTHROPIC_MODEL)
+        self.ai_generator = AIGenerator(config.OLLAMA_BASE_URL, config.OLLAMA_MODEL, config.OLLAMA_API_KEY)
         self.session_manager = SessionManager(config.MAX_HISTORY)
         
         # Initialize search tools
@@ -99,25 +99,32 @@ class RAGSystem:
         
         return total_courses, total_chunks
     
-    def query(self, query: str, session_id: Optional[str] = None) -> Tuple[str, List[str]]:
+    def query(self, query: str, session_id: Optional[str] = None, model: Optional[str] = None) -> Tuple[str, List[str]]:
         """
         Process a user query using the RAG system with tool-based search.
-        
+
         Args:
             query: User's question
             session_id: Optional session ID for conversation context
-            
+            model: Optional model name to use for this query
+
         Returns:
             Tuple of (response, sources list - empty for tool-based approach)
         """
+        # Use specified model or default
+        if model:
+            self.ai_generator.model = model
+        else:
+            self.ai_generator.model = self.config.OLLAMA_MODEL
+
         # Create prompt for the AI with clear instructions
         prompt = f"""Answer this question about course materials: {query}"""
-        
+
         # Get conversation history if session exists
         history = None
         if session_id:
             history = self.session_manager.get_conversation_history(session_id)
-        
+
         # Generate response using AI with tools
         response = self.ai_generator.generate_response(
             query=prompt,

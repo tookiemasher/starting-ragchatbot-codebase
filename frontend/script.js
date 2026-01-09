@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, modelSelect;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,10 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    modelSelect = document.getElementById('modelSelect');
     
     setupEventListeners();
     createNewSession();
     loadCourseStats();
+    loadAvailableModels();
 });
 
 // Event Listeners
@@ -67,7 +69,8 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 query: query,
-                session_id: currentSessionId
+                session_id: currentSessionId,
+                model: modelSelect.value
             })
         });
 
@@ -82,7 +85,7 @@ async function sendMessage() {
 
         // Replace loading message with response
         loadingMessage.remove();
-        addMessage(data.answer, 'assistant', data.sources);
+        addMessage(data.answer, 'assistant', data.sources, false, modelSelect.value, data.response_time);
 
     } catch (error) {
         // Replace loading message with error
@@ -110,17 +113,26 @@ function createLoadingMessage() {
     return messageDiv;
 }
 
-function addMessage(content, type, sources = null, isWelcome = false) {
+function addMessage(content, type, sources = null, isWelcome = false, modelName = null, responseTime = null) {
     const messageId = Date.now();
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
     messageDiv.id = `message-${messageId}`;
-    
+
     // Convert markdown to HTML for assistant messages
     const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
-    
-    let html = `<div class="message-content">${displayContent}</div>`;
-    
+
+    let html = '';
+
+    // Add model label with response time for assistant messages (not welcome message)
+    if (type === 'assistant' && modelName && !isWelcome) {
+        const timeText = responseTime !== null ? ` (${responseTime} sec)` : '';
+        html += `<div class="model-label-response">${modelName}${timeText}</div>`;
+    }
+
+    html += `<div class="message-content">${displayContent}</div>`;
+
+    // Add sources if available
     if (sources && sources.length > 0) {
         html += `
             <details class="sources-collapsible">
@@ -129,11 +141,11 @@ function addMessage(content, type, sources = null, isWelcome = false) {
             </details>
         `;
     }
-    
+
     messageDiv.innerHTML = html;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     return messageId;
 }
 
@@ -158,15 +170,15 @@ async function loadCourseStats() {
         console.log('Loading course stats...');
         const response = await fetch(`${API_URL}/courses`);
         if (!response.ok) throw new Error('Failed to load course stats');
-        
+
         const data = await response.json();
         console.log('Course data received:', data);
-        
+
         // Update stats in UI
         if (totalCourses) {
             totalCourses.textContent = data.total_courses;
         }
-        
+
         // Update course titles
         if (courseTitles) {
             if (data.course_titles && data.course_titles.length > 0) {
@@ -177,7 +189,7 @@ async function loadCourseStats() {
                 courseTitles.innerHTML = '<span class="no-courses">No courses available</span>';
             }
         }
-        
+
     } catch (error) {
         console.error('Error loading course stats:', error);
         // Set default values on error
@@ -186,6 +198,37 @@ async function loadCourseStats() {
         }
         if (courseTitles) {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
+        }
+    }
+}
+
+// Load available Ollama models
+async function loadAvailableModels() {
+    try {
+        console.log('Loading available models...');
+        const response = await fetch(`${API_URL}/models`);
+        if (!response.ok) throw new Error('Failed to load models');
+
+        const data = await response.json();
+        console.log('Models received:', data);
+
+        if (modelSelect && data.models && data.models.length > 0) {
+            modelSelect.innerHTML = data.models
+                .map((model, index) => {
+                    const displayName = model.size
+                        ? `${model.name} (${model.size})`
+                        : model.name;
+                    return `<option value="${model.name}"${index === 0 ? ' selected' : ''}>${displayName}</option>`;
+                })
+                .join('');
+        } else if (modelSelect) {
+            modelSelect.innerHTML = '<option value="">No models available</option>';
+        }
+
+    } catch (error) {
+        console.error('Error loading models:', error);
+        if (modelSelect) {
+            modelSelect.innerHTML = '<option value="">Failed to load models</option>';
         }
     }
 }

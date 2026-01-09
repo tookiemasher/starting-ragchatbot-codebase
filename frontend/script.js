@@ -126,8 +126,12 @@ function addMessage(content, type, sources = null, isWelcome = false, modelName 
 
     // Add model label with response time for assistant messages (not welcome message)
     if (type === 'assistant' && modelName && !isWelcome) {
-        const timeText = responseTime !== null ? ` (${responseTime} sec)` : '';
-        html += `<div class="model-label-response">${modelName}${timeText}</div>`;
+        html += `<div class="message-header">`;
+        html += `<span class="model-label-response">${modelName}</span>`;
+        if (responseTime !== null) {
+            html += `<span class="response-time">${formatResponseTime(responseTime)}</span>`;
+        }
+        html += `</div>`;
     }
 
     html += `<div class="message-content">${displayContent}</div>`;
@@ -154,6 +158,17 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Helper function to format response time
+function formatResponseTime(seconds) {
+    if (seconds >= 60) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.round(seconds % 60);
+        return `✻ Churned for ${minutes}m ${remainingSeconds}s`;
+    } else {
+        return `✻ Churned for ${Math.round(seconds)}s`;
+    }
 }
 
 // Removed removeMessage function - no longer needed since we handle loading differently

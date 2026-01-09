@@ -41,10 +41,15 @@ class QueryRequest(BaseModel):
     session_id: Optional[str] = None
     model: Optional[str] = None
 
+class SourceInfo(BaseModel):
+    """Source information with optional link"""
+    title: str
+    url: Optional[str] = None
+
 class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
-    sources: List[str]
+    sources: List[SourceInfo]
     session_id: str
     response_time: float
 

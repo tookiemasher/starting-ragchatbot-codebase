@@ -323,6 +323,16 @@ header h1 {
     color: var(--text-secondary);
 }
 
+.source-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.source-link:hover {
+    text-decoration: underline;
+    color: var(--text-primary);
+}
+
 /* Markdown formatting styles */
 .message-content h1,
 .message-content h2,

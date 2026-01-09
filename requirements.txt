@@ -1,0 +1,7 @@
+chromadb==1.0.15
+ollama>=0.4.0
+sentence-transformers==5.0.0
+fastapi==0.116.1
+uvicorn==0.35.0
+python-multipart==0.0.20
+python-dotenv==1.1.1

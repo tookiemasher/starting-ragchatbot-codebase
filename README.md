@@ -10,20 +10,21 @@ This application is a full-stack web application that enables users to query cou
 ## Prerequisites
 
 - Python 3.13 or higher
-- uv (Python package manager)
+- Mamba (or Conda) package manager
 - Ollama installed and running locally
 - **For Windows**: Use Git Bash to run the application commands - [Download Git for Windows](https://git-scm.com/downloads/win)
 
 ## Installation
 
-1. **Install uv** (if not already installed)
+1. **Install Mamba** (if not already installed)
    ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+   # Install Miniforge which includes mamba
+   # See: https://github.com/conda-forge/miniforge
    ```
 
 2. **Install Python dependencies**
    ```bash
-   uv sync
+   mamba install --file requirements.txt
    ```
 
 3. **Install Ollama and pull a model**
@@ -55,7 +56,7 @@ chmod +x run.sh
 
 ```bash
 cd backend
-uv run uvicorn app:app --reload --port 8000
+mamba run uvicorn app:app --reload --port 8000
 ```
 
 The application will be available at:

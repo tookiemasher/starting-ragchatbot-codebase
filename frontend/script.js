@@ -3,9 +3,11 @@ const API_URL = '/api';
 
 // Global state
 let currentSessionId = null;
+let abortController = null;
+let currentLoadingMessage = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles, modelSelect;
+let chatMessages, chatInput, sendButton, stopButton, totalCourses, courseTitles, modelSelect;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatMessages = document.getElementById('chatMessages');
     chatInput = document.getElementById('chatInput');
     sendButton = document.getElementById('sendButton');
+    stopButton = document.getElementById('stopButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
     modelSelect = document.getElementById('modelSelect');
@@ -27,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Chat functionality
     sendButton.addEventListener('click', sendMessage);
+    stopButton.addEventListener('click', stopQuery);
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
@@ -48,18 +52,24 @@ async function sendMessage() {
     const query = chatInput.value.trim();
     if (!query) return;
 
-    // Disable input
+    // Disable input and show stop button
     chatInput.value = '';
     chatInput.disabled = true;
     sendButton.disabled = true;
+    sendButton.classList.add('hidden');
+    stopButton.classList.remove('hidden');
 
     // Add user message
     addMessage(query, 'user');
 
     // Add loading message - create a unique container for it
     const loadingMessage = createLoadingMessage();
+    currentLoadingMessage = loadingMessage;
     chatMessages.appendChild(loadingMessage);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Create abort controller for this request
+    abortController = new AbortController();
 
     try {
         const response = await fetch(`${API_URL}/query`, {
@@ -71,13 +81,14 @@ async function sendMessage() {
                 query: query,
                 session_id: currentSessionId,
                 model: modelSelect.value
-            })
+            }),
+            signal: abortController.signal
         });
 
         if (!response.ok) throw new Error('Query failed');
 
         const data = await response.json();
-        
+
         // Update session ID if new
         if (!currentSessionId) {
             currentSessionId = data.session_id;
@@ -90,11 +101,26 @@ async function sendMessage() {
     } catch (error) {
         // Replace loading message with error
         loadingMessage.remove();
-        addMessage(`Error: ${error.message}`, 'assistant');
+        if (error.name === 'AbortError') {
+            addMessage('Query stopped by user.', 'assistant');
+        } else {
+            addMessage(`Error: ${error.message}`, 'assistant');
+        }
     } finally {
+        abortController = null;
+        currentLoadingMessage = null;
         chatInput.disabled = false;
         sendButton.disabled = false;
+        sendButton.classList.remove('hidden');
+        stopButton.classList.add('hidden');
         chatInput.focus();
+    }
+}
+
+// Stop the current query
+function stopQuery() {
+    if (abortController) {
+        abortController.abort();
     }
 }
 

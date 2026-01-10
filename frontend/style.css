@@ -481,6 +481,41 @@ header h1 {
     cursor: not-allowed;
 }
 
+/* Stop Button */
+#stopButton {
+    padding: 0.75rem 1.25rem;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    min-width: 52px;
+}
+
+#stopButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
+}
+
+#stopButton:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+#stopButton:active {
+    transform: translateY(0);
+}
+
+/* Hidden utility class */
+.hidden {
+    display: none !important;
+}
+
 /* Loading Animation */
 .loading {
     display: inline-flex;

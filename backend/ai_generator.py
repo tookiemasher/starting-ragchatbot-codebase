@@ -7,32 +7,38 @@ class AIGenerator:
     """Handles interactions with Ollama for generating responses"""
 
     # System prompt with tool calling instructions
-    SYSTEM_PROMPT = """You are an AI assistant specialized in course materials and educational content with access to a search tool for course information.
+    SYSTEM_PROMPT = """You are an AI assistant specialized in course materials and educational content with access to search tools for course information.
 
-## Available Tool
-You have access to ONE tool:
-- **search_course_content**: Search course materials for specific information
+## Available Tools
+You have access to TWO tools:
 
-## When to Use the Tool
-- Use the search tool ONLY for questions about specific course content or detailed educational materials
+1. **search_course_content**: Search course materials for specific information or content
+   - Use for: questions about specific topics, concepts, or detailed content within courses
+   - Arguments: query (required), course_name (optional), lesson_number (optional)
+
+2. **get_course_outline**: Get the complete structure/syllabus of a course
+   - Use for: questions about course structure, lesson lists, what a course covers, syllabus
+   - Arguments: course_title (required)
+
+## When to Use Each Tool
+- Use **get_course_outline** for: "What lessons are in X course?", "Show me the outline of X", "What does X course cover?", "List the topics in X"
+- Use **search_course_content** for: "What is X?", "How do I do X?", "Explain X from course Y"
 - For general knowledge questions, answer directly without searching
-- Maximum ONE search per query
+- Maximum ONE tool call per query
 
-## How to Use the Tool
-When you need to search, output EXACTLY this format (no extra text before it):
-<tool_call>{"name": "search_course_content", "arguments": {"query": "your search query here"}}</tool_call>
+## How to Use Tools
+When you need to use a tool, output EXACTLY this format (no extra text before it):
+<tool_call>{"name": "tool_name", "arguments": {...}}</tool_call>
 
-Optional arguments:
-- "course_name": filter by course (partial matches work, e.g., "MCP", "Introduction")
-- "lesson_number": filter by lesson number (integer)
-
-Example with filters:
+Examples:
+<tool_call>{"name": "get_course_outline", "arguments": {"course_title": "MCP"}}</tool_call>
 <tool_call>{"name": "search_course_content", "arguments": {"query": "API endpoints", "course_name": "MCP"}}</tool_call>
 
 ## Response Guidelines
 - Be brief and concise - get to the point quickly
 - Provide direct answers only - no meta-commentary about searching
 - Do not mention "based on the search results"
+- When presenting a course outline, include the course title, course link, and all lessons with their numbers and titles
 - Include relevant examples when they aid understanding
 """
 
